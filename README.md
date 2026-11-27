@@ -14,7 +14,7 @@ A Hebrew paragraph that opens with English can read left to right. This extensio
 
 ## Privacy & security
 
-The extension requests no permissions. It reads text on the three supported sites and chooses a direction in your browser. It makes no network requests and does not store data or track you. GitHub Actions enforces the site and permission limits and scans the code for blocked APIs. The two content scripts total about 125 lines of plain JavaScript. [Direction logic](direction.js) · [Page integration](content.js)
+The extension requests no permissions. It reads text on the three supported sites and chooses a direction in your browser. It makes no network requests and does not store data or track you. GitHub Actions enforces the site and permission limits and scans the code for blocked APIs. [Direction logic](direction.js) · [Page integration](content.js)
 
 ## Install on desktop
 
@@ -36,7 +36,7 @@ The draft and sent message should both read right to left, with `API Gateway` at
 
 ## Limitations
 
-The extension uses a letter count to pick direction. Text with a similar number of letters from each script can go either way. A change to a site's page structure can require an update. Support for Claude and Gemini is new.
+The extension uses a letter count to pick direction. Text with a similar number of letters from each script can go either way. It reads the text in standard HTML elements, so site redesigns rarely affect it.
 
 <div dir="rtl" lang="he">
   <h2>בעברית</h2>

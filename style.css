@@ -1,20 +1,19 @@
 [data-ai-rtl="rtl"],
-[data-ai-rtl-draft="rtl"] > :is(#prompt-textarea, #mobile-composer-prompt, textarea, [contenteditable="true"]) {
-  direction: rtl;
+[data-ai-rtl-draft="rtl"] > :is(textarea, [contenteditable="true"]) {
+  direction: rtl !important;
 }
 
 [data-ai-rtl="ltr"],
-[data-ai-rtl-draft="ltr"] > :is(#prompt-textarea, #mobile-composer-prompt, textarea, [contenteditable="true"]) {
-  direction: ltr;
+[data-ai-rtl-draft="ltr"] > :is(textarea, [contenteditable="true"]) {
+  direction: ltr !important;
 }
 
 :is([data-ai-rtl="rtl"], [data-ai-rtl="ltr"]):not(td, th),
-[data-ai-rtl-draft] > :is(#prompt-textarea, #mobile-composer-prompt, textarea, [contenteditable="true"]) {
+[data-ai-rtl-draft] > :is(textarea, [contenteditable="true"]) {
   text-align: start;
 }
 
 :is([data-ai-rtl="rtl"], [data-ai-rtl="ltr"]) {
-  /* The site's plaintext rule can pick the first word instead of the chosen direction. */
   unicode-bidi: isolate !important;
 }
 
@@ -22,12 +21,11 @@
   direction: ltr;
 }
 
-/* Keep the same specificity as the original message selectors. */
-[data-ai-rtl][data-ai-rtl] :is(pre, code, .katex, .katex-display, math, [role="math"], mjx-container) {
+:is(pre, code, kbd, samp, .katex, .katex-display, math, [role="math"], mjx-container) {
   direction: ltr;
   unicode-bidi: isolate;
 }
 
-[data-ai-rtl][data-ai-rtl] pre {
+pre {
   text-align: left;
 }
