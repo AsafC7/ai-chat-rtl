@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Text direction fixture</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="../direction.js"></script>
+  <script src="../content.js"></script>
+</head>
+<body>
+  <div id="bubble">API — אפשר לבדוק שוב את ההגדרות לפני ששולחים?</div>
+  <p id="hebrew">API Gateway מחזיר שגיאה רק אחרי שהחיבור נפתח (HTTP 502).</p>
+  <ul id="list">
+    <li><p>בדיקת החיבור</p></li>
+    <li><p>עדכון ההגדרות</p></li>
+  </ul>
+  <ol id="streaming">
+    <li><span>Backend</span> <span>Timeout</span> – <span>שרת</span> <span>היעד</span> <span>לא</span> <span>מחזיר</span> <span>תגובה</span> <span>בזמן.</span></li>
+  </ol>
+  <p id="english">Check the connection before you try again.</p>
+  <pre id="code"><code>console.log('שלום עולם');</code></pre>
+  <blockquote id="quote">
+    הנה תוצאות הבדיקה לפי סדר ההרצה.
+    <table id="table">
+      <tr><th>שלב</th><th>Result</th></tr>
+      <tr><td>פתיחת חיבור</td><td>OK</td></tr>
+    </table>
+  </blockquote>
+  <nav><p>קישורים שימושיים</p></nav>
+  <label>Draft <textarea id="draft">API — החיבור מוכן לבדיקה.</textarea></label>
+  <div>
+    <div id="editable" contenteditable="true"><p>אפשר גם לערוך את הטקסט כאן.</p></div>
+  </div>
+</body>
+</html>

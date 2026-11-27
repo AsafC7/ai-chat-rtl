@@ -1,0 +1,55 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node direction.test.mjs
+      - name: Check JavaScript syntax
+        run: git ls-files --cached --others --exclude-standard -z -- '*.js' '*.mjs' | xargs -0 -r -n 1 node --check
+      - name: Check the extension manifest
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const { readFileSync, statSync } = require('node:fs');
+          const manifest = JSON.parse(readFileSync('manifest.json', 'utf8'));
+
+          const forbiddenKeys = [
+            'permissions', 'host_permissions', 'optional_permissions', 'optional_host_permissions',
+            'background', 'web_accessible_resources', 'externally_connectable',
+          ];
+          for (const key of forbiddenKeys) {
+            assert.ok(!Object.hasOwn(manifest, key), `Unexpected manifest key: ${key}`);
+          }
+
+          assert.equal(manifest.content_scripts.length, 1);
+          const [{ matches, js, css, match_about_blank, match_origin_as_fallback }] = manifest.content_scripts;
+          assert.deepEqual([...matches].sort(), [
+            'https://chatgpt.com/*',
+            'https://claude.ai/*',
+            'https://gemini.google.com/*',
+          ]);
+          assert.ok(!match_about_blank && !match_origin_as_fallback, 'Content scripts must stay on the listed sites');
+          assert.deepEqual(js, ['direction.js', 'content.js']);
+          assert.deepEqual(css, ['style.css']);
+          assert.deepEqual(Object.keys(manifest.icons), ['16', '32', '48', '128']);
+          for (const path of [...js, ...css, ...Object.values(manifest.icons)]) {
+            assert.ok(statSync(path, { throwIfNoEntry: false })?.isFile(), `Missing file: ${path}`);
+          }
+          NODE
+      - name: Check for network, storage, and dynamic code APIs
+        run: |
+          if git grep --untracked -nE 'fetch[[:space:]]*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|chrome\.storage|chrome\.runtime\.sendMessage|localStorage|sessionStorage|indexedDB|importScripts|eval[[:space:]]*\(|new[[:space:]]+Function' -- '*.js' '*.mjs'; then
+            exit 1
+          else
+            test "$?" -eq 1
+          fi
