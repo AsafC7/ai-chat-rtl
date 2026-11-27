@@ -3,26 +3,34 @@
 
   const USER_MESSAGE = ':is([data-message-author-role="user"], [data-user-message-bubble="true"])';
   const ASSISTANT_TEXT = ':is([data-chatgpt-selection-message-id], [data-content-search-unit-key$=":assistant"]) [data-markdown-text-style]';
-  const MESSAGE = `${USER_MESSAGE}, [data-message-author-role="assistant"], ${ASSISTANT_TEXT}`;
+  const SITES = {
+    'chatgpt.com': {
+      messages: `${USER_MESSAGE}, [data-message-author-role="assistant"], ${ASSISTANT_TEXT}`,
+      editor: ':is(#prompt-textarea, #mobile-composer-prompt):is(textarea, [contenteditable="true"])',
+      codeScope: `[data-message-author-role], [data-user-message-bubble="true"], ${ASSISTANT_TEXT}`,
+    },
+    'claude.ai': {
+      messages: '[data-testid="user-message"], .font-claude-response, .font-claude-message, [data-is-streaming]',
+      editor: '.ProseMirror[contenteditable="true"], :is([data-testid="chat-input"], [data-testid="composer"]) textarea',
+    },
+    'gemini.google.com': {
+      messages: 'user-query, .query-text, message-content, .markdown',
+      editor: 'rich-textarea [contenteditable="true"], .ql-editor[contenteditable="true"]',
+    },
+  };
+  const { hostname } = location;
+  const { messages: MESSAGE, editor: EDITOR, codeScope = MESSAGE } = SITES[hostname];
+  const { direction } = globalThis.__aiChatRtl;
+  const isChatGPT = hostname === 'chatgpt.com';
   const PROSE = 'p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th, dt, dd';
   const USER_TEXT = '.whitespace-pre-wrap';
-  const EDITOR = ':is(#prompt-textarea, #mobile-composer-prompt):is(textarea, [contenteditable="true"])';
   const ROOT = `${MESSAGE}, ${EDITOR}`;
+  const SCAN = `${codeScope}, ${EDITOR}`;
   const EXCLUDED = 'pre, code, .katex, .katex-display, math, [role="math"], mjx-container, button, svg, [hidden], [aria-hidden="true"]';
-  const MESSAGE_DIRECTION = 'data-chatgpt-rtl';
-  const EDITOR_DIRECTION = 'data-chatgpt-rtl-draft';
+  const MESSAGE_DIRECTION = 'data-ai-rtl';
+  const EDITOR_DIRECTION = 'data-ai-rtl-draft';
   const pending = new Set();
   let frame = 0;
-
-  function direction(text) {
-    const prose = text.replace(/(?:https?:\/\/|www\.)\S+|\b[\w.+-]+@[\w.-]+\.[a-z]+\b/giu, '');
-    const hebrew = (prose.match(/[\p{Script=Hebrew}&&\p{Letter}]/gv) || []).length;
-    const latin = (prose.match(/[\p{Script=Latin}&&\p{Letter}]/gv) || []).length;
-
-    // shortcut: letter counts approximate mixed prose. Revisit if common phrases flip incorrectly.
-    if (hebrew) return hebrew * 1.5 >= latin ? 'rtl' : 'ltr';
-    return /^\p{Script=Latin}$/u.test(prose.match(/\p{Letter}/u)?.[0] ?? '') ? 'ltr' : null;
-  }
 
   function proseText(block) {
     const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
@@ -40,8 +48,14 @@
 
   function setDirection(element, attribute, value) {
     if (element.getAttribute(attribute) === value) return;
-    if (value) element.setAttribute(attribute, value);
-    else element.removeAttribute(attribute);
+    if (value === null) element.removeAttribute(attribute);
+    else element.setAttribute(attribute, value);
+  }
+
+  function blockDirection(block) {
+    if (block.closest(`${EXCLUDED}, [contenteditable="true"]`)) return null;
+    if (isChatGPT && block.matches(USER_TEXT) && !block.matches(PROSE) && block.querySelector(PROSE)) return null;
+    return direction(proseText(block));
   }
 
   function update(root) {
@@ -52,13 +66,18 @@
       return;
     }
 
-    const isUser = root.matches(USER_MESSAGE);
-    const blocks = [...root.querySelectorAll(isUser ? `${PROSE}, ${USER_TEXT}` : PROSE)];
-    if (isUser && root.matches(USER_TEXT)) blocks.unshift(root);
-    for (const block of blocks) {
-      if (block.closest(MESSAGE) !== root || block.closest(`${EXCLUDED}, [contenteditable="true"]`)) continue;
-      const wrapsProse = block.matches(USER_TEXT) && !block.matches(PROSE) && block.querySelector(PROSE);
-      setDirection(block, MESSAGE_DIRECTION, wrapsProse ? null : direction(proseText(block)));
+    const isMessage = root.matches(MESSAGE);
+    const isUser = isChatGPT && root.matches(USER_MESSAGE);
+    const rootIsProse = isChatGPT
+      ? isUser && root.matches(USER_TEXT)
+      : root.matches(PROSE) || !root.querySelector(`${PROSE}, ${MESSAGE}, table`);
+    // An empty value scopes code and math styles without setting the message direction.
+    const value = isMessage && rootIsProse ? blockDirection(root) : null;
+    setDirection(root, MESSAGE_DIRECTION, value ?? '');
+    if (!isMessage) return;
+    for (const block of root.querySelectorAll(isUser ? `${PROSE}, ${USER_TEXT}` : PROSE)) {
+      if (block.closest(MESSAGE) !== root) continue;
+      setDirection(block, MESSAGE_DIRECTION, blockDirection(block));
     }
   }
 
@@ -67,7 +86,7 @@
     frame = requestAnimationFrame(() => {
       frame = 0;
       for (const root of pending) {
-        if (root.isConnected && root.matches(ROOT)) update(root);
+        if (root.isConnected && root.matches(SCAN)) update(root);
       }
       pending.clear();
     });
@@ -84,8 +103,8 @@
       enqueueOwner(target);
       for (const node of addedNodes) {
         if (!(node instanceof Element)) continue;
-        if (node.matches(ROOT)) pending.add(node);
-        for (const root of node.querySelectorAll(ROOT)) pending.add(root);
+        if (node.matches(SCAN)) pending.add(node);
+        for (const root of node.querySelectorAll(SCAN)) pending.add(root);
       }
     }
     schedule();
@@ -93,10 +112,11 @@
 
   observer.observe(document.documentElement, {childList: true, characterData: true, subtree: true});
   document.addEventListener('input', event => {
-    if (!(event.target instanceof HTMLTextAreaElement) || !event.target.matches(EDITOR)) return;
+    if (isChatGPT && !(event.target instanceof HTMLTextAreaElement)) return;
+    if (!(event.target instanceof Element) || !event.target.matches(EDITOR)) return;
     pending.add(event.target);
     schedule();
   });
-  for (const root of document.querySelectorAll(ROOT)) pending.add(root);
+  for (const root of document.querySelectorAll(SCAN)) pending.add(root);
   schedule();
 })();

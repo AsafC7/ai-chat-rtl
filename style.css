@@ -1,31 +1,33 @@
-[data-chatgpt-rtl="rtl"],
-[data-chatgpt-rtl-draft="rtl"] > :is(#prompt-textarea, #mobile-composer-prompt) {
+[data-ai-rtl="rtl"],
+[data-ai-rtl-draft="rtl"] > :is(#prompt-textarea, #mobile-composer-prompt, textarea, [contenteditable="true"]) {
   direction: rtl;
 }
 
-[data-chatgpt-rtl="ltr"],
-[data-chatgpt-rtl-draft="ltr"] > :is(#prompt-textarea, #mobile-composer-prompt) {
+[data-ai-rtl="ltr"],
+[data-ai-rtl-draft="ltr"] > :is(#prompt-textarea, #mobile-composer-prompt, textarea, [contenteditable="true"]) {
   direction: ltr;
 }
 
-[data-chatgpt-rtl]:not(td, th),
-[data-chatgpt-rtl-draft] > :is(#prompt-textarea, #mobile-composer-prompt) {
+:is([data-ai-rtl="rtl"], [data-ai-rtl="ltr"]):not(td, th),
+[data-ai-rtl-draft] > :is(#prompt-textarea, #mobile-composer-prompt, textarea, [contenteditable="true"]) {
   text-align: start;
 }
 
-[data-chatgpt-rtl] {
+:is([data-ai-rtl="rtl"], [data-ai-rtl="ltr"]) {
   /* The site's plaintext rule can pick the first word instead of the chosen direction. */
   unicode-bidi: isolate !important;
 }
 
-:is([data-message-author-role], [data-user-message-bubble="true"],
-    :is([data-chatgpt-selection-message-id], [data-content-search-unit-key$=":assistant"]) [data-markdown-text-style])
-  :is(pre, code, .katex, .katex-display, math, [role="math"], mjx-container) {
+:where([data-ai-rtl="rtl"]) table:not([dir]) {
+  direction: ltr;
+}
+
+/* Keep the same specificity as the original message selectors. */
+[data-ai-rtl][data-ai-rtl] :is(pre, code, .katex, .katex-display, math, [role="math"], mjx-container) {
   direction: ltr;
   unicode-bidi: isolate;
 }
 
-:is([data-message-author-role], [data-user-message-bubble="true"],
-    :is([data-chatgpt-selection-message-id], [data-content-search-unit-key$=":assistant"]) [data-markdown-text-style]) pre {
+[data-ai-rtl][data-ai-rtl] pre {
   text-align: left;
 }
